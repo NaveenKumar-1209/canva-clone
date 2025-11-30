@@ -8,6 +8,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { $createParagraphNode, $createTextNode, $getRoot, BLUR_COMMAND, COMMAND_PRIORITY_NORMAL } from 'lexical';
 import theme from '../theme';
+import LexicalFormattingPlugin from './LexicalFormattingPlugin';
 
 const themeConfig = {
   namespace: 'MyEditor',
@@ -51,7 +52,7 @@ function UpdateEditablePlugin({ isEditable }) {
   return null;
 }
 
-export default function LexicalEditorWrapper({ initialContent, onChange, onBlur, isEditable = true }) {
+export default function LexicalEditorWrapper({ initialContent, onChange, onBlur, isEditable = true, elementId }) {
   const initialConfig = {
     ...themeConfig,
     editable: isEditable,
@@ -88,6 +89,7 @@ export default function LexicalEditorWrapper({ initialContent, onChange, onBlur,
         <UpdateEditablePlugin isEditable={isEditable} />
         <OnChangePlugin onChange={onChange} />
         {onBlur && <OnBlurPlugin onBlur={onBlur} />}
+        {elementId && <LexicalFormattingPlugin elementId={elementId} />}
       </div>
     </LexicalComposer>
   );

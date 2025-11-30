@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addElement, updateElement } from '../../../store/presentationSlice';
 import { Type, Bold, Italic, Underline, Plus } from 'lucide-react';
@@ -7,8 +7,44 @@ const Toolbar = () => {
   const dispatch = useDispatch();
   const { currentSlideId, selectedElementId, slides } = useSelector((state) => state.presentation);
   
+  // Track active formatting states
+  const [activeFormats, setActiveFormats] = useState({
+    isBold: false,
+    isItalic: false,
+    isUnderline: false
+  });
+  
   const currentSlide = slides.find(s => s.id === currentSlideId);
   const selectedElement = currentSlide?.elements.find(e => e.id === selectedElementId);
+
+  // Listen for selection changes from Lexical
+  useEffect(() => {
+    const handleSelectionChange = (event) => {
+      if (event.detail.elementId === selectedElementId) {
+        setActiveFormats({
+          isBold: event.detail.isBold,
+          isItalic: event.detail.isItalic,
+          isUnderline: event.detail.isUnderline
+        });
+      }
+    };
+
+    window.addEventListener('lexical-selection-change', handleSelectionChange);
+    return () => {
+      window.removeEventListener('lexical-selection-change', handleSelectionChange);
+    };
+  }, [selectedElementId]);
+
+  // Reset active formats when no element is selected
+  useEffect(() => {
+    if (!selectedElementId) {
+      setActiveFormats({
+        isBold: false,
+        isItalic: false,
+        isUnderline: false
+      });
+    }
+  }, [selectedElementId]);
 
   const handleAddText = () => {
     const newElement = {
@@ -33,23 +69,38 @@ const Toolbar = () => {
 
   const handleStyleChange = (key, value) => {
     if (!selectedElementId) return;
-    dispatch(updateElement({
-      slideId: currentSlideId,
-      elementId: selectedElementId,
-      updates: {
-        style: {
-          ...selectedElement.style,
-          [key]: value
-        }
-      }
-    }));
+    
+    // Map style keys to Lexical event names
+    const eventMap = {
+      fontFamily: 'lexical-format-fontFamily',
+      fontSize: 'lexical-format-fontSize',
+      color: 'lexical-format-color'
+    };
+
+    if (eventMap[key]) {
+      // Dispatch custom event for Lexical formatting
+      window.dispatchEvent(new CustomEvent(eventMap[key], {
+        detail: { elementId: selectedElementId, value }
+      }));
+    }
   };
 
-  const toggleStyle = (key, onValue, offValue) => {
+  const toggleStyle = (formatType) => {
     if (!selectedElementId) return;
-    const currentValue = selectedElement.style[key];
-    const newValue = currentValue === onValue ? offValue : onValue;
-    handleStyleChange(key, newValue);
+    
+    // Map format types to Lexical event names
+    const eventMap = {
+      bold: 'lexical-format-bold',
+      italic: 'lexical-format-italic',
+      underline: 'lexical-format-underline'
+    };
+
+    if (eventMap[formatType]) {
+      // Dispatch custom event for Lexical formatting
+      window.dispatchEvent(new CustomEvent(eventMap[formatType], {
+        detail: { elementId: selectedElementId }
+      }));
+    }
   };
 
   return (
@@ -94,23 +145,26 @@ const Toolbar = () => {
 
         <div className="flex items-center space-x-1">
             <button 
-                className={`p-2 rounded-lg transition-all ${selectedElement?.style?.fontWeight === 'bold' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
-                onClick={() => toggleStyle('fontWeight', 'bold', 'normal')}
+                className={`p-2 rounded-lg transition-all ${activeFormats.isBold ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => toggleStyle('bold')}
                 disabled={!selectedElementId}
+                title="Bold (Ctrl+B)"
             >
                 <Bold size={18} />
             </button>
             <button 
-                className={`p-2 rounded-lg transition-all ${selectedElement?.style?.fontStyle === 'italic' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
-                onClick={() => toggleStyle('fontStyle', 'italic', 'normal')}
+                className={`p-2 rounded-lg transition-all ${activeFormats.isItalic ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => toggleStyle('italic')}
                 disabled={!selectedElementId}
+                title="Italic (Ctrl+I)"
             >
                 <Italic size={18} />
             </button>
             <button 
-                className={`p-2 rounded-lg transition-all ${selectedElement?.style?.textDecoration === 'underline' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
-                onClick={() => toggleStyle('textDecoration', 'underline', 'none')}
+                className={`p-2 rounded-lg transition-all ${activeFormats.isUnderline ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => toggleStyle('underline')}
                 disabled={!selectedElementId}
+                title="Underline (Ctrl+U)"
             >
                 <Underline size={18} />
             </button>

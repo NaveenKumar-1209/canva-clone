@@ -151,6 +151,7 @@ const TextElement = ({ element, slideId }) => {
             onChange={handleEditorChange}
             onBlur={handleEditorBlur}
             isEditable={isEditing}
+            elementId={element.id}
         />
       </div>
 
