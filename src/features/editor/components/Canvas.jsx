@@ -9,7 +9,7 @@ const Canvas = () => {
   const currentSlide = slides.find((s) => s.id === currentSlideId);
 
   const handleCanvasClick = () => {
-    dispatch(selectElement(null));
+    // dispatch(selectElement(null));
   };
 
   if (!currentSlide) return <div className="flex-1 flex items-center justify-center">No Slide Selected</div>;
